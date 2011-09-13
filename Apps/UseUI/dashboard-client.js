@@ -13,6 +13,7 @@ var express = require('express'),
     fs = require('fs'),
     socketio = require('socket.io'),
     request = require('request');
+var logger = require("logger").logger;
 
 var externalBase;
 var locker;
@@ -86,9 +87,9 @@ function saveState()
 function bootState()
 {
     if(isSomeoneListening > 0) return; // only boot after we've been idle
-    console.error("booting state fresh");
+    logger.debug("booting state fresh");
     async.forEach(['contacts','links','photos'],function(coll,callback){
-        console.error("fetching "+locker.lockerBase+'/Me/'+coll+'/state '+ JSON.stringify(locker) );
+        logger.debug("fetching "+locker.lockerBase+'/Me/'+coll+'/state '+ JSON.stringify(locker) );
         request.get({uri:locker.lockerBase+'/Me/'+coll+'/state',json:true},function(err,res,body){
             if(coll == 'links') var evInfo = eventInfo['link'];
             if(coll == 'photos') var evInfo = eventInfo['photo'];
@@ -125,7 +126,7 @@ function bootState()
 }
 
 io.sockets.on('connection', function (socket) {
-    console.error("got new socket.io connection");
+    logger.debug("got new socket.io connection");
     bootState();
     isSomeoneListening++;
     var counts = {};
@@ -138,7 +139,7 @@ io.sockets.on('connection', function (socket) {
         // when nobody is around, don't receive events anymore
         if(isSomeoneListening == 0)
         {
-            console.error("everybody left, quiesce");
+            logger.debug("everybody left, quiesce");
             locker.deafen("photo","/event");
             locker.deafen("link","/event");
             locker.deafen("contact/full","/event");
